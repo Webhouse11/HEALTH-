@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { NAV_LINKS } from '../constants';
 import { AdPlaceholder } from './AdPlaceholder';
 import { WellnessCompanion } from './WellnessCompanion';
+import { User, UserRole } from '../types';
 
 const HEALTH_QUOTES = [
   "Your mental health is a priority. Your happiness is an essential. Your self-care is a necessity.",
@@ -14,8 +15,16 @@ const HEALTH_QUOTES = [
   "Peace of mind is not the absence of conflict, but the ability to cope with it.",
 ];
 
-export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface LayoutProps {
+  children: React.ReactNode;
+  user: User | null;
+  onLogin: (role: UserRole) => void;
+  onLogout: () => void;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogout }) => {
   const quoteString = HEALTH_QUOTES.join(" • ") + " • ";
+  const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,8 +51,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <span className="text-xs bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-medium">Daily</span>
             </Link>
             
-            <nav className="hidden md:flex space-x-8">
-              {NAV_LINKS.map(link => (
+            <nav className="hidden md:flex space-x-8 items-center">
+              {NAV_LINKS.filter(link => {
+                if (link.path === '/dashboard') return isStaff;
+                return true;
+              }).map(link => (
                 <Link 
                   key={link.path} 
                   to={link.path} 
@@ -52,6 +64,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   {link.label}
                 </Link>
               ))}
+              {user && (
+                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                  <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-1 rounded uppercase tracking-wider">{user.role}</span>
+                  <button onClick={onLogout} className="text-[10px] font-bold text-red-500 uppercase hover:underline">Logout</button>
+                </div>
+              )}
             </nav>
             
             <button className="md:hidden text-slate-500">
@@ -90,11 +108,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold text-slate-900 mb-4">Follow Us</h4>
-              <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-teal-600 cursor-pointer transition-colors">f</div>
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-teal-600 cursor-pointer transition-colors">t</div>
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-teal-600 cursor-pointer transition-colors">i</div>
+              <h4 className="font-bold text-slate-900 mb-4">Staff Portal</h4>
+              <div className="flex flex-col gap-2">
+                {!user ? (
+                  <>
+                    <button onClick={() => onLogin(UserRole.EDITOR)} className="text-left text-xs text-slate-400 hover:text-teal-600">Login as Editor</button>
+                    <button onClick={() => onLogin(UserRole.ADMIN)} className="text-left text-xs text-slate-400 hover:text-teal-600">Login as Admin</button>
+                  </>
+                ) : (
+                  <button onClick={onLogout} className="text-left text-xs text-red-400 hover:text-red-600">Logout of Portal</button>
+                )}
               </div>
             </div>
           </div>

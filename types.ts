@@ -10,6 +10,18 @@ export enum Category {
   DAILY_GUIDE = "Daily Guides"
 }
 
+export enum UserRole {
+  GUEST = 'Guest',
+  EDITOR = 'Editor',
+  ADMIN = 'Admin'
+}
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -30,4 +42,5 @@ export interface AppState {
   articles: Article[];
   isGenerating: boolean;
   lastGeneratedDate: string | null;
+  currentUser: User | null;
 }

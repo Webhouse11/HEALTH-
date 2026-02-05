@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { Article, AppState } from './types';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Article, AppState, User, UserRole } from './types';
 import { INITIAL_ARTICLES } from './constants';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -21,7 +21,8 @@ const App: React.FC = () => {
     return {
       articles: INITIAL_ARTICLES,
       isGenerating: false,
-      lastGeneratedDate: null
+      lastGeneratedDate: null,
+      currentUser: null // Default to logged out
     };
   });
 
@@ -53,9 +54,24 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLogin = (role: UserRole) => {
+    const mockUser: User = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: `Staff Member (${role})`,
+      role: role
+    };
+    setState(prev => ({ ...prev, currentUser: mockUser }));
+  };
+
+  const handleLogout = () => {
+    setState(prev => ({ ...prev, currentUser: null }));
+  };
+
+  const isStaff = state.currentUser?.role === UserRole.ADMIN || state.currentUser?.role === UserRole.EDITOR;
+
   return (
     <Router>
-      <Layout>
+      <Layout user={state.currentUser} onLogin={handleLogin} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Home articles={state.articles} />} />
           <Route path="/article/:slug" element={<ArticlePage articles={state.articles} />} />
@@ -64,12 +80,16 @@ const App: React.FC = () => {
           <Route 
             path="/dashboard" 
             element={
-              <Dashboard 
-                state={state} 
-                onPostGenerated={handlePostGenerated} 
-                onUpdateArticle={handleUpdateArticle}
-                onDeleteArticle={handleDeleteArticle}
-              />
+              isStaff ? (
+                <Dashboard 
+                  state={state} 
+                  onPostGenerated={handlePostGenerated} 
+                  onUpdateArticle={handleUpdateArticle}
+                  onDeleteArticle={handleDeleteArticle}
+                />
+              ) : (
+                <Navigate to="/" replace />
+              )
             } 
           />
           <Route path="/category/:cat" element={<Home articles={state.articles} />} />
