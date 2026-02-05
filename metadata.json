@@ -1,0 +1,8 @@
+{
+  "name": "HealthScope Daily",
+  "description": "An automated, SEO-first mental health and emotional wellness blog platform with daily content generation and professional E-E-A-T structure.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
