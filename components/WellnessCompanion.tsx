@@ -119,7 +119,7 @@ export const WellnessCompanion: React.FC = () => {
             }
           },
           onerror: (e) => {
-            setError("Connection error. Please check your API key.");
+            setError("Connection error. Check API key.");
             stopSession();
           },
           onclose: () => stopSession()
@@ -129,13 +129,13 @@ export const WellnessCompanion: React.FC = () => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
           },
-          systemInstruction: "You are a compassionate, warm, and highly professional wellness companion for HealthScope Daily. Your goal is to provide emotional support, listen without judgment, and offer gentle grounding exercises. Always remind the user that you are an AI and not a substitute for professional medical help if needed."
+          systemInstruction: "You are a compassionate, warm, and highly professional wellness companion. Offer gentle support. Remind the user you are an AI helper."
         }
       });
 
       sessionRef.current = await sessionPromise;
     } catch (e: any) {
-      setError(e.message || "Failed to start wellness session.");
+      setError("Failed to start wellness session.");
       setIsConnecting(false);
     }
   };
@@ -151,39 +151,39 @@ export const WellnessCompanion: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100]">
+    <div className="fixed bottom-8 right-8 z-[100]">
       {isActive ? (
-        <div className="bg-white rounded-3xl shadow-2xl border border-teal-100 p-6 w-72 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex justify-between items-center mb-4">
-            <span className="flex h-3 w-3 rounded-full bg-teal-500 animate-pulse" />
-            <h4 className="font-bold text-slate-900 text-sm">Wellness Companion</h4>
-            <button onClick={stopSession} className="text-slate-400 hover:text-slate-600">
+        <div className="bg-white rounded-[2rem] shadow-2xl border border-teal-100 p-6 w-64 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex justify-between items-center mb-5">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-teal-500 animate-pulse" />
+            <h4 className="font-bold text-slate-900 text-[10px] uppercase tracking-widest">Active Companion</h4>
+            <button onClick={stopSession} className="text-slate-300 hover:text-red-500 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-          <div className="space-y-3">
-            <p className="text-xs text-slate-500 italic">I'm listening... speak naturally.</p>
-            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-               <div className="h-full bg-teal-500 w-1/2 animate-ping" />
+          <div className="space-y-4">
+            <div className="h-0.5 bg-slate-100 rounded-full overflow-hidden">
+               <div className="h-full bg-teal-500 w-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, #14b8a6, transparent)' }} />
             </div>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center">Your safe space is open</p>
           </div>
         </div>
       ) : (
         <button 
           onClick={startSession}
           disabled={isConnecting}
-          className="flex items-center gap-3 px-6 py-4 bg-teal-600 text-white rounded-full font-bold shadow-2xl hover:bg-teal-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+          className="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-teal-700 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 relative group"
         >
           {isConnecting ? (
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-20a3 3 0 013 3v10a3 3 0 01-6 0V7a3 3 0 013-3z" /></svg>
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-20a3 3 0 013 3v10a3 3 0 01-6 0V7a3 3 0 013-3z" /></svg>
           )}
-          {isConnecting ? 'Connecting...' : 'Talk to Companion'}
+          <span className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-100 transition-transform rounded-full" />
         </button>
       )}
       {error && (
-        <div className="absolute bottom-20 right-0 w-64 bg-red-50 text-red-700 text-[10px] p-2 rounded-lg border border-red-100 shadow-md">
+        <div className="absolute bottom-24 right-0 w-48 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest p-4 rounded-2xl shadow-2xl animate-bounce text-center">
           {error}
         </div>
       )}

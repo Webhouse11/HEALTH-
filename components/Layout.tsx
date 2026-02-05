@@ -1,18 +1,20 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { NAV_LINKS } from '../constants';
 import { AdPlaceholder } from './AdPlaceholder';
 import { WellnessCompanion } from './WellnessCompanion';
-import { User, UserRole } from '../types';
+import { User, UserRole, AdConfig, Category } from '../types';
 
-const HEALTH_QUOTES = [
-  "Your mental health is a priority. Your happiness is an essential. Your self-care is a necessity.",
-  "You don't have to see the whole staircase, just take the first step.",
-  "Healing is not linear, and every small step forward is a victory.",
-  "Be kind to your mind; it's doing the best it can.",
-  "It is okay to rest. It is okay to start over. It is okay to be exactly where you are.",
-  "Peace of mind is not the absence of conflict, but the ability to cope with it.",
+const MOTIVATION_QUOTES = [
+  "Your mental health is a priority.",
+  "Self-care is not selfish.",
+  "Healing is not linear.",
+  "Be kind to your mind.",
+  "It is okay to rest.",
+  "Small daily improvements win.",
+  "Breathe. You're doing better than you think.",
+  "Everything you need is within you."
 ];
 
 interface LayoutProps {
@@ -20,114 +22,128 @@ interface LayoutProps {
   user: User | null;
   onLogin: (role: UserRole) => void;
   onLogout: () => void;
+  ads: AdConfig;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogout }) => {
-  const quoteString = HEALTH_QUOTES.join(" • ") + " • ";
+export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogout, ads }) => {
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
+  const location = useLocation();
+  const marqueeText = MOTIVATION_QUOTES.join(" • ") + " • ";
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Scrolling Quote Banner */}
-      <div className="bg-teal-900 text-teal-50 py-2 overflow-hidden border-b border-teal-800 select-none">
-        <div className="flex animate-marquee whitespace-nowrap">
-          <span className="text-sm font-medium tracking-wide mx-4">
-            {quoteString}
-          </span>
-          <span className="text-sm font-medium tracking-wide mx-4">
-            {quoteString}
-          </span>
-          <span className="text-sm font-medium tracking-wide mx-4">
-            {quoteString}
-          </span>
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Top Utility Bar (Mirroring Legit's black top bar) */}
+      <div className="bg-legit-dark text-white text-[10px] font-bold py-2 hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <div className="flex gap-4 items-center">
+            <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span className="text-legit-red">● Trending Now</span>
+          </div>
+          <div className="flex gap-4 uppercase tracking-widest">
+            <Link to="/about" className="hover:text-legit-red">About Us</Link>
+            <Link to="/contact" className="hover:text-legit-red">Contact</Link>
+            {user ? (
+              <button onClick={onLogout} className="text-red-400">Logout</button>
+            ) : (
+              <button onClick={() => onLogin(UserRole.ADMIN)} className="opacity-40">Staff Login</button>
+            )}
+          </div>
         </div>
       </div>
 
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-teal-700 serif">HealthScope</span>
-              <span className="text-xs bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-medium">Daily</span>
-            </Link>
-            
-            <nav className="hidden md:flex space-x-8 items-center">
-              {NAV_LINKS.filter(link => {
-                if (link.path === '/dashboard') return isStaff;
-                return true;
-              }).map(link => (
-                <Link 
-                  key={link.path} 
-                  to={link.path} 
-                  className="text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              {user && (
-                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                  <span className="text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-1 rounded uppercase tracking-wider">{user.role}</span>
-                  <button onClick={onLogout} className="text-[10px] font-bold text-red-500 uppercase hover:underline">Logout</button>
-                </div>
-              )}
-            </nav>
-            
-            <button className="md:hidden text-slate-500">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-            </button>
-          </div>
+      {/* Main Brand Header */}
+      <header className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col items-center">
+          <Link to="/" className="flex flex-col items-center group">
+            <div className="flex items-center gap-1">
+              <span className="text-4xl md:text-5xl font-black text-legit-dark tracking-tighter uppercase transition-colors group-hover:text-legit-red">
+                Health<span className="text-legit-red">Scope</span>
+              </span>
+            </div>
+            <div className="h-0.5 w-12 bg-legit-red mt-1 group-hover:w-full transition-all duration-300"></div>
+          </Link>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <AdPlaceholder type="header" />
+      {/* Sticky Category Navigation */}
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-[100] news-grid-shadow">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              <Link to="/" className={`px-4 h-14 flex items-center text-xs font-black uppercase tracking-widest border-b-4 transition-all ${location.pathname === '/' ? 'border-legit-red text-legit-red' : 'border-transparent text-slate-600 hover:text-legit-red'}`}>
+                Home
+              </Link>
+              {Object.values(Category).map(cat => (
+                <Link 
+                  key={cat} 
+                  to={`/category/${cat}`} 
+                  className={`px-4 h-14 flex items-center text-xs font-black uppercase tracking-widest border-b-4 whitespace-nowrap transition-all ${location.pathname === `/category/${cat}` ? 'border-legit-red text-legit-red' : 'border-transparent text-slate-600 hover:text-legit-red'}`}
+                >
+                  {cat.split(' ')[0]}
+                </Link>
+              ))}
+              {isStaff && (
+                <Link to="/dashboard" className="px-4 h-14 flex items-center text-xs font-black uppercase tracking-widest text-legit-red border-b-4 border-transparent">
+                  Dashboard
+                </Link>
+              )}
+            </div>
+            <button className="p-2 text-slate-400 hover:text-legit-red">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Ticker Bar (News Style) */}
+      <div className="bg-white border-b border-slate-200 py-2.5 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <div className="bg-legit-red text-white text-[10px] font-black uppercase px-3 py-1 ml-4 whitespace-nowrap">Wellness Quotes</div>
+          <div className="flex animate-marquee whitespace-nowrap">
+            <span className="text-xs font-bold text-slate-600 italic tracking-wide px-4">{marqueeText}</span>
+            <span className="text-xs font-bold text-slate-600 italic tracking-wide px-4">{marqueeText}</span>
+          </div>
+        </div>
       </div>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-8">
+      {/* Global Ad Slot */}
+      <div className="max-w-7xl mx-auto px-4 w-full mt-6">
+        <AdPlaceholder type="leaderboard" config={ads.leaderboard} />
+      </div>
+
+      <main className="flex-grow max-w-7xl mx-auto px-4 w-full py-8">
         {children}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <span className="text-2xl font-bold text-teal-700 serif">HealthScope Daily</span>
-              <p className="mt-4 text-slate-500 max-w-xs leading-relaxed">
-                Empowering individuals with science-backed mental health insights and daily emotional wellness strategies.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li><Link to="/">Home</Link></li>
-                <li><Link to="/about">About Us</Link></li>
-                <li><Link to="/contact">Contact</Link></li>
-                <li><Link to="/privacy">Privacy Policy</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 mb-4">Staff Portal</h4>
-              <div className="flex flex-col gap-2">
-                {!user ? (
-                  <>
-                    <button onClick={() => onLogin(UserRole.EDITOR)} className="text-left text-xs text-slate-400 hover:text-teal-600">Login as Editor</button>
-                    <button onClick={() => onLogin(UserRole.ADMIN)} className="text-left text-xs text-slate-400 hover:text-teal-600">Login as Admin</button>
-                  </>
-                ) : (
-                  <button onClick={onLogout} className="text-left text-xs text-red-400 hover:text-red-600">Logout of Portal</button>
-                )}
-              </div>
+      <footer className="bg-legit-dark text-white pt-20 pb-10">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          <div className="md:col-span-2">
+            <h4 className="text-3xl font-black uppercase tracking-tighter mb-6">Health<span className="text-legit-red">Scope</span></h4>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-md mb-8">
+              HealthScope Daily is a premium news platform dedicated to providing the most reliable daily mental health insights. Our mission is to democratize emotional wellness and provide grounding for every human journey.
+            </p>
+          </div>
+          <div>
+            <h5 className="font-black uppercase text-xs tracking-widest text-legit-red mb-6">Explore Topics</h5>
+            <ul className="space-y-3 text-sm text-slate-300">
+              {Object.values(Category).slice(0,5).map(c => <li key={c}><Link to={`/category/${c}`} className="hover:text-white transition-colors">{c}</Link></li>)}
+            </ul>
+          </div>
+          <div>
+            <h5 className="font-black uppercase text-xs tracking-widest text-legit-red mb-6">Follow Us</h5>
+            <div className="flex gap-4">
+              {['FB', 'TW', 'IG', 'YT'].map(s => <div key={s} className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xs font-black cursor-pointer hover:bg-legit-red transition-colors">{s}</div>)}
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} HealthScope Daily. All rights reserved. Content for informational purposes only.
+        </div>
+        <div className="max-w-7xl mx-auto px-4 border-t border-slate-800 pt-8 text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] flex flex-col md:flex-row justify-between items-center gap-4">
+          <span>&copy; {new Date().getFullYear()} HealthScope Daily. All rights reserved.</span>
+          <div className="flex gap-6">
+            <Link to="/" className="hover:text-white">Privacy Policy</Link>
+            <Link to="/" className="hover:text-white">Terms of Service</Link>
           </div>
         </div>
       </footer>
-
-      {/* Real-time Wellness Companion */}
       <WellnessCompanion />
     </div>
   );

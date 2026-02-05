@@ -22,6 +22,38 @@ export interface User {
   role: UserRole;
 }
 
+export interface AdSlot {
+  id: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  imageUrl: string;
+  type: 'placeholder' | 'custom';
+  customScript: string;
+  active: boolean;
+}
+
+export interface AdConfig {
+  leaderboard: AdSlot;
+  anchor: AdSlot;
+  rectangle: AdSlot;
+  tenancy: AdSlot;
+  inText: AdSlot;
+  sticky: AdSlot;
+  interArticle: AdSlot;
+  skyscraper: AdSlot;
+  inStream: AdSlot;
+  interstitial: AdSlot;
+  sponsor: AdSlot;
+  // Mobile Specific
+  mLeaderboard: AdSlot;
+  mTenancy: AdSlot;
+  mInText: AdSlot;
+  mAnchor: AdSlot;
+  mInterArticle: AdSlot;
+  mInStream: AdSlot;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -43,4 +75,5 @@ export interface AppState {
   isGenerating: boolean;
   lastGeneratedDate: string | null;
   currentUser: User | null;
+  ads: AdConfig;
 }
