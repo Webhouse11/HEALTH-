@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Article, AppState, User, UserRole, AdConfig, AdSlot } from './types';
 import { INITIAL_ARTICLES } from './constants';
@@ -9,6 +9,7 @@ import { Article as ArticlePage } from './pages/Article';
 import { Dashboard } from './pages/Dashboard';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
+import { ContentAutomationService } from './services/gemini';
 
 const STORAGE_KEY = 'healthscope_v1_state';
 
@@ -59,17 +60,47 @@ const App: React.FC = () => {
     };
   });
 
+  const handlePostGenerated = useCallback((newArticle: Article) => {
+    setState(prev => {
+      // Avoid duplicates
+      if (prev.articles.some(a => a.slug === newArticle.slug)) return prev;
+      return {
+        ...prev,
+        articles: [newArticle, ...prev.articles],
+        lastGeneratedDate: new Date().toLocaleDateString()
+      };
+    });
+  }, []);
+
+  // AUTOMATED 2X DAILY PULSE ENGINE
+  useEffect(() => {
+    const triggerAutomation = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const articlesToday = state.articles.filter(a => a.datePublished === today);
+      
+      // If we have less than 2 articles for today, generate one automatically
+      if (articlesToday.length < 2 && !state.isGenerating) {
+        console.log(`[Pulse Engine] Only ${articlesToday.length} posts for today. Triggering auto-generation...`);
+        setState(prev => ({ ...prev, isGenerating: true }));
+        try {
+          const service = new ContentAutomationService();
+          const newPost = await service.generateDailyPost(state.articles.map(a => a.title));
+          handlePostGenerated(newPost);
+        } catch (e) {
+          console.error("[Pulse Engine Error]", e);
+        } finally {
+          setState(prev => ({ ...prev, isGenerating: false }));
+        }
+      }
+    };
+
+    const timeout = setTimeout(triggerAutomation, 3000); // Trigger shortly after load
+    return () => clearTimeout(timeout);
+  }, [state.articles, state.isGenerating, handlePostGenerated]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
-
-  const handlePostGenerated = (newArticle: Article) => {
-    setState(prev => ({
-      ...prev,
-      articles: [newArticle, ...prev.articles],
-      lastGeneratedDate: new Date().toLocaleDateString()
-    }));
-  };
 
   const handleUpdateArticle = (updatedArticle: Article) => {
     setState(prev => ({

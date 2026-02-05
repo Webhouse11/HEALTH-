@@ -6,7 +6,6 @@ export class ContentAutomationService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Correctly initialize GoogleGenAI with a named parameter using the environment variable directly.
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -14,25 +13,27 @@ export class ContentAutomationService {
     const niches = Object.values(Category);
     const selectedNiche = niches[Math.floor(Math.random() * niches.length)];
 
+    // Using Gemini 3 Pro for search grounding capabilities
     const prompt = `
-      As a mental health expert writer for HealthScope Daily, generate a high-quality, SEO-optimized blog post for today.
-      Niche: ${selectedNiche}
-      Existing Topics to Avoid: ${existingTopics.join(', ')}
+      STEP 1: Use Google Search to find the most trending and frequently searched questions/topics regarding "${selectedNiche}" today.
+      STEP 2: Based on those trends, write a high-authority, SEO-optimized blog post for HealthScope Daily.
+      
+      Topic context to avoid duplication: ${existingTopics.slice(-10).join(', ')}
       
       Requirements:
-      - Title: SEO-friendly, under 60 chars.
-      - Meta Description: Compassionate, under 160 chars.
-      - Content: 800-1000 words in HTML format (use <h2>, <h3>, <p>, <ul>).
-      - Tone: Empathetic, evidence-informed, professional yet warm.
-      - Keywords: 3-5 relevant focus keywords.
-      - Image Alt: Detailed descriptive text.
+      - Title: Must be an H1-style click-worthy, SEO-optimized headline (e.g., "5 Signs of...", "How to Deal with...").
+      - Meta Description: High CTR summary for Google Search results.
+      - Content: 1000+ words. Deeply informative. Use HTML tags (<h2>, <h3>, <p>, <ul>). 
+      - Grounding: Mention real-world statistics or current wellness trends found in your search.
+      - Keywords: List 5 high-volume search keywords you identified.
+      - Image Alt: Detailed for accessibility.
     `;
 
-    // Always use ai.models.generateContent to query GenAI with both the model name and prompt.
     const response = await this.ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }], // Enable real-time Google search grounding
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -48,11 +49,8 @@ export class ContentAutomationService {
       }
     });
 
-    // Access the text property directly (it's a property, not a method).
     const jsonStr = response.text;
-    if (!jsonStr) {
-      throw new Error("The model did not return any text content.");
-    }
+    if (!jsonStr) throw new Error("AI generation failed.");
 
     const data = JSON.parse(jsonStr.trim());
     const today = new Date().toISOString().split('T')[0];
@@ -69,9 +67,9 @@ export class ContentAutomationService {
       datePublished: today,
       dateModified: today,
       imageAlt: data.imageAlt,
-      author: 'HealthScope AI Editor',
+      author: 'HealthScope Research AI',
       canonicalUrl: `/#/article/${slug}`,
-      imageUrl: `https://picsum.photos/seed/${slug}/1200/630`
+      imageUrl: `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?auto=format&fit=crop&q=80&w=1200`
     };
   }
 }
