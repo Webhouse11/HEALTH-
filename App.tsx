@@ -11,8 +11,10 @@ import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { ContentAutomationService } from './services/gemini';
 import { NotificationToast } from './components/NotificationToast';
+import { NotificationPrompt } from './components/NotificationPrompt';
 
 const STORAGE_KEY = 'healthscope_v1_state';
+const PROMPT_KEY = 'healthscope_prompt_shown';
 
 const createEmptySlot = (id: string, title: string): AdSlot => ({
   id,
@@ -47,6 +49,7 @@ const DEFAULT_ADS: AdConfig = {
 
 const App: React.FC = () => {
   const [activeNotifications, setActiveNotifications] = useState<NotificationType[]>([]);
+  const [showPrompt, setShowPrompt] = useState(false);
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -64,7 +67,6 @@ const App: React.FC = () => {
   });
 
   const triggerNotification = useCallback((article: Article) => {
-    // 1. In-site Toast
     const newNotif: NotificationType = {
       id: Math.random().toString(36).substr(2, 9),
       title: article.title,
@@ -73,7 +75,6 @@ const App: React.FC = () => {
     };
     setActiveNotifications(prev => [newNotif, ...prev]);
 
-    // 2. Native Browser Notification (if permission granted)
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("HealthScope Daily: New Post", {
         body: article.title,
@@ -94,6 +95,7 @@ const App: React.FC = () => {
     triggerNotification(newArticle);
   }, [triggerNotification]);
 
+  // Handle auto-generation
   useEffect(() => {
     const triggerAutomation = async () => {
       const today = new Date().toISOString().split('T')[0];
@@ -116,6 +118,14 @@ const App: React.FC = () => {
     const timeout = setTimeout(triggerAutomation, 3000);
     return () => clearTimeout(timeout);
   }, [state.articles, state.isGenerating, handlePostGenerated]);
+
+  // Check if we should show the notification prompt
+  useEffect(() => {
+    const promptShown = localStorage.getItem(PROMPT_KEY);
+    if (!promptShown && !state.notificationsEnabled && Notification.permission !== "granted") {
+      setShowPrompt(true);
+    }
+  }, [state.notificationsEnabled]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -156,7 +166,14 @@ const App: React.FC = () => {
       if (permission === "granted") {
         setState(prev => ({ ...prev, notificationsEnabled: true }));
       }
+      setShowPrompt(false);
+      localStorage.setItem(PROMPT_KEY, 'true');
     }
+  };
+
+  const handleIgnorePrompt = () => {
+    setShowPrompt(false);
+    localStorage.setItem(PROMPT_KEY, 'true');
   };
 
   return (
@@ -178,6 +195,14 @@ const App: React.FC = () => {
             />
           ))}
         </div>
+
+        {showPrompt && (
+          <NotificationPrompt 
+            onEnable={requestNotificationPermission} 
+            onIgnore={handleIgnorePrompt} 
+          />
+        )}
+
         <Routes>
           <Route path="/" element={<Home articles={state.articles} ads={state.ads} />} />
           <Route path="/article/:slug" element={<ArticlePage articles={state.articles} ads={state.ads} />} />
