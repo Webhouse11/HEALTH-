@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Article, AppState, User, UserRole, AdConfig, AdSlot } from './types';
+import { Article, AppState, User, UserRole, AdConfig, AdSlot, NotificationToast as NotificationType } from './types';
 import { INITIAL_ARTICLES } from './constants';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -10,6 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { ContentAutomationService } from './services/gemini';
+import { NotificationToast } from './components/NotificationToast';
 
 const STORAGE_KEY = 'healthscope_v1_state';
 
@@ -45,6 +46,7 @@ const DEFAULT_ADS: AdConfig = {
 };
 
 const App: React.FC = () => {
+  const [activeNotifications, setActiveNotifications] = useState<NotificationType[]>([]);
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -56,13 +58,32 @@ const App: React.FC = () => {
       isGenerating: false,
       lastGeneratedDate: null,
       currentUser: null,
-      ads: DEFAULT_ADS
+      ads: DEFAULT_ADS,
+      notificationsEnabled: false
     };
   });
 
+  const triggerNotification = useCallback((article: Article) => {
+    // 1. In-site Toast
+    const newNotif: NotificationType = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: article.title,
+      message: article.metaDescription,
+      slug: article.slug
+    };
+    setActiveNotifications(prev => [newNotif, ...prev]);
+
+    // 2. Native Browser Notification (if permission granted)
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("HealthScope Daily: New Post", {
+        body: article.title,
+        icon: article.imageUrl
+      });
+    }
+  }, []);
+
   const handlePostGenerated = useCallback((newArticle: Article) => {
     setState(prev => {
-      // Avoid duplicates
       if (prev.articles.some(a => a.slug === newArticle.slug)) return prev;
       return {
         ...prev,
@@ -70,17 +91,15 @@ const App: React.FC = () => {
         lastGeneratedDate: new Date().toLocaleDateString()
       };
     });
-  }, []);
+    triggerNotification(newArticle);
+  }, [triggerNotification]);
 
-  // AUTOMATED 2X DAILY PULSE ENGINE
   useEffect(() => {
     const triggerAutomation = async () => {
       const today = new Date().toISOString().split('T')[0];
       const articlesToday = state.articles.filter(a => a.datePublished === today);
       
-      // If we have less than 2 articles for today, generate one automatically
       if (articlesToday.length < 2 && !state.isGenerating) {
-        console.log(`[Pulse Engine] Only ${articlesToday.length} posts for today. Triggering auto-generation...`);
         setState(prev => ({ ...prev, isGenerating: true }));
         try {
           const service = new ContentAutomationService();
@@ -94,7 +113,7 @@ const App: React.FC = () => {
       }
     };
 
-    const timeout = setTimeout(triggerAutomation, 3000); // Trigger shortly after load
+    const timeout = setTimeout(triggerAutomation, 3000);
     return () => clearTimeout(timeout);
   }, [state.articles, state.isGenerating, handlePostGenerated]);
 
@@ -131,9 +150,34 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setState(prev => ({ ...prev, notificationsEnabled: true }));
+      }
+    }
+  };
+
   return (
     <Router>
-      <Layout user={state.currentUser} onLogin={handleLogin} onLogout={handleLogout} ads={state.ads}>
+      <Layout 
+        user={state.currentUser} 
+        onLogin={handleLogin} 
+        onLogout={handleLogout} 
+        ads={state.ads}
+        notificationsEnabled={state.notificationsEnabled}
+        onRequestNotifications={requestNotificationPermission}
+      >
+        <div className="notifications-container">
+          {activeNotifications.map(n => (
+            <NotificationToast 
+              key={n.id} 
+              notification={n} 
+              onClose={(id) => setActiveNotifications(prev => prev.filter(x => x.id !== id))} 
+            />
+          ))}
+        </div>
         <Routes>
           <Route path="/" element={<Home articles={state.articles} ads={state.ads} />} />
           <Route path="/article/:slug" element={<ArticlePage articles={state.articles} ads={state.ads} />} />

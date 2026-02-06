@@ -76,4 +76,12 @@ export interface AppState {
   lastGeneratedDate: string | null;
   currentUser: User | null;
   ads: AdConfig;
+  notificationsEnabled: boolean;
+}
+
+export interface NotificationToast {
+  id: string;
+  title: string;
+  message: string;
+  slug: string;
 }

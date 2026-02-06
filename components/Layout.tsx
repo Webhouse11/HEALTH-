@@ -23,16 +23,26 @@ interface LayoutProps {
   onLogin: (role: UserRole) => void;
   onLogout: () => void;
   ads: AdConfig;
+  notificationsEnabled: boolean;
+  onRequestNotifications: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogout, ads }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  user, 
+  onLogin, 
+  onLogout, 
+  ads, 
+  notificationsEnabled, 
+  onRequestNotifications 
+}) => {
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
   const location = useLocation();
   const marqueeText = MOTIVATION_QUOTES.join(" • ") + " • ";
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Top Utility Bar (Mirroring Legit's black top bar) */}
+      {/* Top Utility Bar */}
       <div className="bg-legit-dark text-white text-[10px] font-bold py-2 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <div className="flex gap-4 items-center">
@@ -88,14 +98,32 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogou
                 </Link>
               )}
             </div>
-            <button className="p-2 text-slate-400 hover:text-legit-red">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={onRequestNotifications}
+                className={`p-2 transition-colors relative group ${notificationsEnabled ? 'text-legit-red' : 'text-slate-400 hover:text-legit-red'}`}
+                title={notificationsEnabled ? "Notifications Active" : "Get Alerts for New Posts"}
+              >
+                <svg className="w-5 h-5" fill={notificationsEnabled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                {!notificationsEnabled && (
+                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-legit-red opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-legit-red"></span>
+                   </span>
+                )}
+                <div className="absolute top-full right-0 mt-2 w-32 bg-legit-dark text-white text-[8px] font-black uppercase tracking-widest p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center">
+                  {notificationsEnabled ? 'Alerts Enabled' : 'Enable Daily Alerts'}
+                </div>
+              </button>
+              <button className="p-2 text-slate-400 hover:text-legit-red">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Ticker Bar (News Style) */}
+      {/* Ticker Bar */}
       <div className="bg-white border-b border-slate-200 py-2.5 overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center gap-4">
           <div className="bg-legit-red text-white text-[10px] font-black uppercase px-3 py-1 ml-4 whitespace-nowrap">Wellness Quotes</div>
@@ -106,7 +134,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogou
         </div>
       </div>
 
-      {/* Global Ad Slot */}
       <div className="max-w-7xl mx-auto px-4 w-full mt-6">
         <AdPlaceholder type="leaderboard" config={ads.leaderboard} />
       </div>
@@ -122,6 +149,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogou
             <p className="text-slate-400 text-sm leading-relaxed max-w-md mb-8">
               HealthScope Daily is a premium news platform dedicated to providing the most reliable daily mental health insights. Our mission is to democratize emotional wellness and provide grounding for every human journey.
             </p>
+            {!notificationsEnabled && (
+              <button 
+                onClick={onRequestNotifications}
+                className="bg-legit-red text-white text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-sm hover:bg-red-700 transition-colors"
+              >
+                Subscribe to Daily Alerts
+              </button>
+            )}
           </div>
           <div>
             <h5 className="font-black uppercase text-xs tracking-widest text-legit-red mb-6">Explore Topics</h5>
