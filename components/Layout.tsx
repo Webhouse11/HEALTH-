@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { NAV_LINKS } from '../constants';
 import { AdPlaceholder } from './AdPlaceholder';
 import { WellnessCompanion } from './WellnessCompanion';
@@ -25,6 +25,7 @@ interface LayoutProps {
   ads: AdConfig;
   notificationsEnabled: boolean;
   onRequestNotifications: () => void;
+  totalArticles: number;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
@@ -34,20 +35,54 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout, 
   ads, 
   notificationsEnabled, 
-  onRequestNotifications 
+  onRequestNotifications,
+  totalArticles
 }) => {
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  
   const marqueeText = MOTIVATION_QUOTES.join(" • ") + " • ";
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/');
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Floating Global Article Counter */}
+      <div className="fixed bottom-8 left-8 z-[150] hidden sm:flex items-center gap-3 bg-legit-dark text-white px-5 py-3 rounded-2xl shadow-2xl border border-white/10 news-grid-shadow animate-in slide-in-from-left-4">
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Total Archive</span>
+          <span className="text-xl font-black text-legit-red">{totalArticles.toLocaleString()}</span>
+        </div>
+        <div className="h-8 w-px bg-white/10 mx-1"></div>
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Status</span>
+          <span className="text-[10px] font-black text-green-400 flex items-center gap-1.5 uppercase">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+            Online
+          </span>
+        </div>
+      </div>
+
       {/* Top Utility Bar */}
-      <div className="bg-legit-dark text-white text-[10px] font-bold py-2 hidden md:block">
+      <div className="bg-legit-dark text-white text-[10px] font-bold py-2 hidden md:block border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <div className="flex gap-4 items-center">
             <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-            <span className="text-legit-red">● Trending Now</span>
+            <div className="flex items-center gap-2">
+              <span className="text-legit-red">●</span>
+              <span className="text-slate-400 uppercase tracking-widest text-[9px]">Live Insight Counter:</span>
+              <span className="bg-legit-red px-1.5 py-0.5 rounded text-white font-black">{totalArticles.toLocaleString()} Articles</span>
+            </div>
           </div>
           <div className="flex gap-4 uppercase tracking-widest">
             <Link to="/about" className="hover:text-legit-red">About Us</Link>
@@ -71,6 +106,10 @@ export const Layout: React.FC<LayoutProps> = ({
               </span>
             </div>
             <div className="h-0.5 w-12 bg-legit-red mt-1 group-hover:w-full transition-all duration-300"></div>
+            <div className="mt-2 flex items-center gap-2">
+               <span className="h-1 w-1 rounded-full bg-legit-red animate-pulse"></span>
+               <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">Publishing Daily Archive: {totalArticles} Professional Guides</span>
+            </div>
           </Link>
         </div>
       </header>
@@ -80,7 +119,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              <Link to="/" className={`px-4 h-14 flex items-center text-xs font-black uppercase tracking-widest border-b-4 transition-all ${location.pathname === '/' ? 'border-legit-red text-legit-red' : 'border-transparent text-slate-600 hover:text-legit-red'}`}>
+              <Link to="/" className={`px-4 h-14 flex items-center text-xs font-black uppercase tracking-widest border-b-4 transition-all ${location.pathname === '/' && !searchParams.get('q') ? 'border-legit-red text-legit-red' : 'border-transparent text-slate-600 hover:text-legit-red'}`}>
                 Home
               </Link>
               {Object.values(Category).map(cat => (
@@ -98,30 +137,57 @@ export const Layout: React.FC<LayoutProps> = ({
                 </Link>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={onRequestNotifications}
-                className={`p-2 transition-colors relative group ${notificationsEnabled ? 'text-legit-red' : 'text-slate-400 hover:text-legit-red'}`}
-                title={notificationsEnabled ? "Notifications Active" : "Get Alerts for New Posts"}
-              >
-                <svg className="w-5 h-5" fill={notificationsEnabled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                {!notificationsEnabled && (
-                   <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-legit-red opacity-75"></span>
-                     <span className="relative inline-flex rounded-full h-2 w-2 bg-legit-red"></span>
-                   </span>
-                )}
-                <div className="absolute top-full right-0 mt-2 w-32 bg-legit-dark text-white text-[8px] font-black uppercase tracking-widest p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center">
-                  {notificationsEnabled ? 'Alerts Enabled' : 'Enable Daily Alerts'}
-                </div>
-              </button>
-              <button className="p-2 text-slate-400 hover:text-legit-red">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              </button>
+            
+            <div className="flex items-center gap-4">
+              <form onSubmit={handleSearch} className="relative hidden sm:block">
+                <input 
+                  type="text" 
+                  placeholder="Search articles..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-[10px] font-bold uppercase tracking-widest px-4 py-2 pr-10 rounded-full focus:outline-none focus:ring-1 focus:ring-legit-red w-40 md:w-64 transition-all"
+                />
+                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-legit-red transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
+              </form>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={onRequestNotifications}
+                  className={`p-2 transition-colors relative group ${notificationsEnabled ? 'text-legit-red' : 'text-slate-400 hover:text-legit-red'}`}
+                  title={notificationsEnabled ? "Notifications Active" : "Get Alerts for New Posts"}
+                >
+                  <svg className="w-5 h-5" fill={notificationsEnabled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  {!notificationsEnabled && (
+                     <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-legit-red opacity-75"></span>
+                       <span className="relative inline-flex rounded-full h-2 w-2 bg-legit-red"></span>
+                     </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Search Bar */}
+      <div className="bg-slate-100 py-2 px-4 sm:hidden border-b border-slate-200 flex justify-between items-center">
+        <form onSubmit={handleSearch} className="relative flex-grow mr-4">
+          <input 
+            type="text" 
+            placeholder="Search wellness..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-slate-200 text-[10px] font-bold uppercase tracking-widest px-4 py-2 pr-10 rounded-lg focus:outline-none"
+          />
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </button>
+        </form>
+        <span className="bg-legit-red px-2 py-1 rounded text-white text-[8px] font-black">{totalArticles} POSTS</span>
+      </div>
 
       {/* Ticker Bar */}
       <div className="bg-white border-b border-slate-200 py-2.5 overflow-hidden">
@@ -147,16 +213,8 @@ export const Layout: React.FC<LayoutProps> = ({
           <div className="md:col-span-2">
             <h4 className="text-3xl font-black uppercase tracking-tighter mb-6">Health<span className="text-legit-red">Scope</span></h4>
             <p className="text-slate-400 text-sm leading-relaxed max-w-md mb-8">
-              HealthScope Daily is a premium news platform dedicated to providing the most reliable daily mental health insights. Our mission is to democratize emotional wellness and provide grounding for every human journey.
+              HealthScope Daily is a premium news platform dedicated to providing the most reliable daily mental health insights. Currently hosting <strong>{totalArticles.toLocaleString()}</strong> professional articles.
             </p>
-            {!notificationsEnabled && (
-              <button 
-                onClick={onRequestNotifications}
-                className="bg-legit-red text-white text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-sm hover:bg-red-700 transition-colors"
-              >
-                Subscribe to Daily Alerts
-              </button>
-            )}
           </div>
           <div>
             <h5 className="font-black uppercase text-xs tracking-widest text-legit-red mb-6">Explore Topics</h5>
@@ -172,11 +230,7 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 border-t border-slate-800 pt-8 text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] flex flex-col md:flex-row justify-between items-center gap-4">
-          <span>&copy; {new Date().getFullYear()} HealthScope Daily. All rights reserved.</span>
-          <div className="flex gap-6">
-            <Link to="/" className="hover:text-white">Privacy Policy</Link>
-            <Link to="/" className="hover:text-white">Terms of Service</Link>
-          </div>
+          <span>&copy; {new Date().getFullYear()} HealthScope Daily. All rights reserved. {totalArticles} Articles Online.</span>
         </div>
       </footer>
       <WellnessCompanion />

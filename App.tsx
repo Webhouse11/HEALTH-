@@ -85,7 +85,8 @@ const App: React.FC = () => {
 
   const handlePostGenerated = useCallback((newArticle: Article) => {
     setState(prev => {
-      if (prev.articles.some(a => a.slug === newArticle.slug)) return prev;
+      if (prev.articles.some(a => a.id === newArticle.id || a.slug === newArticle.slug)) return prev;
+      // ALWAYS PREPEND: New articles go to index 0 (Top of home page)
       return {
         ...prev,
         articles: [newArticle, ...prev.articles],
@@ -95,13 +96,12 @@ const App: React.FC = () => {
     triggerNotification(newArticle);
   }, [triggerNotification]);
 
-  // Handle auto-generation
   useEffect(() => {
     const triggerAutomation = async () => {
       const today = new Date().toISOString().split('T')[0];
       const articlesToday = state.articles.filter(a => a.datePublished === today);
       
-      if (articlesToday.length < 2 && !state.isGenerating) {
+      if (articlesToday.length < 100 && !state.isGenerating) {
         setState(prev => ({ ...prev, isGenerating: true }));
         try {
           const service = new ContentAutomationService();
@@ -115,11 +115,10 @@ const App: React.FC = () => {
       }
     };
 
-    const timeout = setTimeout(triggerAutomation, 3000);
+    const timeout = setTimeout(triggerAutomation, 5000);
     return () => clearTimeout(timeout);
   }, [state.articles, state.isGenerating, handlePostGenerated]);
 
-  // Check if we should show the notification prompt
   useEffect(() => {
     const promptShown = localStorage.getItem(PROMPT_KEY);
     if (!promptShown && !state.notificationsEnabled && Notification.permission !== "granted") {
@@ -185,6 +184,7 @@ const App: React.FC = () => {
         ads={state.ads}
         notificationsEnabled={state.notificationsEnabled}
         onRequestNotifications={requestNotificationPermission}
+        totalArticles={state.articles.length}
       >
         <div className="notifications-container">
           {activeNotifications.map(n => (

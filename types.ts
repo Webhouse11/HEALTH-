@@ -68,6 +68,7 @@ export interface Article {
   author: string;
   canonicalUrl: string;
   imageUrl: string;
+  isFeatured?: boolean;
 }
 
 export interface AppState {

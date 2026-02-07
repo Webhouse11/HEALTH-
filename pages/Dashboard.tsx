@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Article, AppState, Category, UserRole, AdConfig, AdSlot } from '../types';
 import { ContentAutomationService } from '../services/gemini';
 import { SEOGenerator } from '../services/seo-generator';
@@ -24,6 +24,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isStaff = state.currentUser?.role === UserRole.ADMIN || state.currentUser?.role === UserRole.EDITOR;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const articlesToday = useMemo(() => state.articles.filter(a => a.datePublished === todayStr), [state.articles, todayStr]);
+  const progressPercent = Math.min(100, (articlesToday.length / 100) * 100);
 
   if (!isStaff) return <Navigate to="/" replace />;
 
@@ -56,7 +60,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
   const handleSaveArticle = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingArticle) {
-      // Basic slug generation if empty
       const slug = editingArticle.slug || editingArticle.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const finalArticle = {
         ...editingArticle,
@@ -131,16 +134,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
               }
               setLoading(false);
             }}
-            disabled={loading}
+            disabled={loading || articlesToday.length >= 100}
             className="px-8 py-3 bg-legit-red text-white rounded-2xl font-black text-[10px] tracking-widest shadow-lg hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-3 uppercase"
           >
             {loading ? (
               <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             ) : null}
-            {loading ? 'AI Researching...' : 'Auto-Generate Pulse Post'}
+            {loading ? 'AI Researching...' : articlesToday.length >= 100 ? 'Daily Limit Reached' : 'Auto-Generate Pulse Post'}
           </button>
         </div>
       </header>
+
+      {/* Daily Pulse Tracker */}
+      <div className="bg-white border border-slate-100 rounded-[2rem] p-8 mb-12 shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Daily Pulse Goal</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Targeting 100 High-Impact Posts per day</p>
+          </div>
+          <span className="text-2xl font-black text-legit-red">{articlesToday.length}<span className="text-slate-200 text-sm">/100</span></span>
+        </div>
+        <div className="h-4 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+           <div 
+             className="h-full bg-legit-red transition-all duration-1000 ease-out relative" 
+             style={{ width: `${progressPercent}%` }}
+           >
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[shimmer_2s_linear_infinite]" />
+           </div>
+        </div>
+        {state.isGenerating && (
+          <p className="text-[9px] font-black text-legit-red uppercase tracking-widest mt-4 animate-pulse">● System generating more posts to reach 100 target...</p>
+        )}
+      </div>
 
       <div className="flex border-b border-slate-200 mb-8 overflow-x-auto no-scrollbar gap-2">
         {['articles', 'media', 'seo', 'ads'].map((t) => (
@@ -263,7 +288,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <tr>
@@ -282,18 +307,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                              <img src={article.imageUrl} alt="" className="w-full h-full object-cover" />
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm leading-tight">{article.title}</p>
+                            <p className="font-bold text-slate-900 text-sm leading-tight line-clamp-1">{article.title}</p>
                             <p className="text-[9px] text-slate-400 font-mono mt-1.5 uppercase tracking-tighter opacity-60">Slug: {article.slug}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                        <span className="text-[9px] font-black bg-red-50 text-legit-red px-3 py-1 rounded-lg uppercase tracking-widest">
+                        <span className="text-[9px] font-black bg-red-50 text-legit-red px-3 py-1 rounded-lg uppercase tracking-widest whitespace-nowrap">
                           {article.category}
                         </span>
                       </td>
                       <td className="px-8 py-6">
-                        <span className="text-xs font-bold text-slate-500">{article.datePublished}</span>
+                        <span className="text-xs font-bold text-slate-500 whitespace-nowrap">{article.datePublished}</span>
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-3">
