@@ -33,14 +33,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
     onUpdateAds(updatedAds);
   };
 
+  const handleCreateNewBlank = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const newArticle: Article = {
+      id: Math.random().toString(36).substr(2, 9),
+      slug: '',
+      title: '',
+      metaDescription: '',
+      keywords: [],
+      category: Category.DAILY_GUIDE,
+      content: '<h2>New Article Headline</h2><p>Start writing here...</p>',
+      datePublished: today,
+      dateModified: today,
+      imageAlt: '',
+      author: state.currentUser?.name || 'Staff Author',
+      canonicalUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=1200'
+    };
+    setEditingArticle(newArticle);
+  };
+
   const handleSaveArticle = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingArticle) {
-      const updated = {
+      // Basic slug generation if empty
+      const slug = editingArticle.slug || editingArticle.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const finalArticle = {
         ...editingArticle,
+        slug,
+        canonicalUrl: `/#/article/${slug}`,
         dateModified: new Date().toISOString().split('T')[0]
       };
-      onUpdateArticle(updated);
+
+      const exists = state.articles.some(a => a.id === finalArticle.id);
+      if (exists) {
+        onUpdateArticle(finalArticle);
+      } else {
+        onPostGenerated(finalArticle);
+      }
       setEditingArticle(null);
     }
   };
@@ -78,10 +108,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
     <div className="max-w-6xl mx-auto py-8">
       <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-teal-600 bg-teal-50 px-2 py-1 rounded mb-2 inline-block">Staff Console</span>
-          <h1 className="text-3xl font-bold text-slate-900 serif">Content Manager</h1>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-legit-red bg-red-50 px-2 py-1 rounded mb-2 inline-block">Staff Console</span>
+          <h1 className="text-3xl font-bold text-slate-900">Content Management System</h1>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
+          <button 
+            onClick={handleCreateNewBlank}
+            className="px-6 py-3 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl font-black text-[10px] tracking-widest shadow-sm hover:bg-slate-900 hover:text-white transition-all uppercase"
+          >
+            Write New Article
+          </button>
           <button 
             onClick={async () => {
               setLoading(true);
@@ -96,12 +132,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
               setLoading(false);
             }}
             disabled={loading}
-            className="px-8 py-3 bg-teal-600 text-white rounded-2xl font-black text-[10px] tracking-widest shadow-lg hover:bg-teal-700 disabled:opacity-50 transition-all flex items-center gap-3 uppercase"
+            className="px-8 py-3 bg-legit-red text-white rounded-2xl font-black text-[10px] tracking-widest shadow-lg hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-3 uppercase"
           >
             {loading ? (
               <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             ) : null}
-            {loading ? 'Authoring...' : 'Autogenerate Today\'s Post'}
+            {loading ? 'AI Researching...' : 'Auto-Generate Pulse Post'}
           </button>
         </div>
       </header>
@@ -111,7 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
           <button 
             key={t}
             onClick={() => setActiveTab(t as Tab)}
-            className={`px-8 py-4 font-black text-[10px] tracking-widest uppercase transition-all border-b-2 ${activeTab === t ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            className={`px-8 py-4 font-black text-[10px] tracking-widest uppercase transition-all border-b-2 ${activeTab === t ? 'border-legit-red text-legit-red' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
           >
             {t === 'ads' ? 'Ad Network' : t}
           </button>
@@ -121,11 +157,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
       {activeTab === 'articles' && (
         <div className="space-y-6">
           {editingArticle ? (
-            <div className="bg-white rounded-[2.5rem] border border-teal-100 shadow-2xl p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="flex justify-between items-center mb-8 border-b pb-6">
-                <h2 className="text-2xl font-bold text-slate-900 serif">Editing Story</h2>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
+                  {state.articles.some(a => a.id === editingArticle.id) ? 'Edit Article' : 'Compose New Story'}
+                </h2>
                 <button onClick={() => setEditingArticle(null)} className="text-slate-400 hover:text-slate-600 font-black text-[10px] uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-xl">
-                  Exit Editor
+                  Discard Changes
                 </button>
               </div>
 
@@ -133,9 +171,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Article Title</label>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Article Title (SEO Focused)</label>
                       <input 
-                        className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-teal-500 outline-none transition-all font-bold text-slate-800"
+                        required
+                        placeholder="e.g., 5 Proven Ways to Manage Morning Anxiety"
+                        className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-legit-red outline-none transition-all font-bold text-slate-800"
                         value={editingArticle.title}
                         onChange={e => setEditingArticle({...editingArticle, title: e.target.value})}
                       />
@@ -143,7 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Niche Category</label>
                       <select 
-                        className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-teal-500 outline-none transition-all appearance-none font-bold text-slate-800"
+                        className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-legit-red outline-none transition-all appearance-none font-bold text-slate-800"
                         value={editingArticle.category}
                         onChange={e => setEditingArticle({...editingArticle, category: e.target.value as Category})}
                       >
@@ -152,9 +192,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                         ))}
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Meta Description (160 characters)</label>
+                      <textarea 
+                        className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-legit-red outline-none transition-all font-medium text-slate-600 h-24 text-sm"
+                        value={editingArticle.metaDescription}
+                        onChange={e => setEditingArticle({...editingArticle, metaDescription: e.target.value})}
+                      />
+                    </div>
                   </div>
 
-                  {/* Media Management UI */}
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex justify-between items-center">
                       Feature Image
@@ -170,7 +217,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                              <button 
                                type="button" 
                                onClick={() => fileInputRef.current?.click()} 
-                               className="bg-white text-slate-900 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-teal-50"
+                               className="bg-white text-slate-900 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-50"
                              >
                                Replace Image
                              </button>
@@ -182,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                           <button 
                              type="button" 
                              onClick={() => fileInputRef.current?.click()} 
-                             className="text-[10px] font-black uppercase text-teal-600 hover:text-teal-700"
+                             className="text-[10px] font-black uppercase text-legit-red hover:text-red-700"
                           >
                              Click to Upload Cover
                           </button>
@@ -192,7 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                     <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                     <input 
                       className="w-full px-4 py-2 text-[10px] border-b border-slate-100 outline-none text-slate-400 italic"
-                      placeholder="Or paste external URL here..."
+                      placeholder="Or paste external image URL here..."
                       value={editingArticle.imageUrl}
                       onChange={e => setEditingArticle({...editingArticle, imageUrl: e.target.value})}
                     />
@@ -200,17 +247,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Story Body (HTML)</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Content Body (HTML Supported)</label>
                   <textarea 
-                    className="w-full px-6 py-6 rounded-3xl border-2 border-slate-100 focus:border-teal-500 outline-none transition-all h-[500px] font-mono text-sm leading-relaxed"
+                    className="w-full px-6 py-6 rounded-3xl border-2 border-slate-100 focus:border-legit-red outline-none transition-all h-[500px] font-mono text-sm leading-relaxed"
                     value={editingArticle.content}
                     onChange={e => setEditingArticle({...editingArticle, content: e.target.value})}
                   />
                 </div>
 
                 <div className="flex gap-4">
-                   <button type="submit" className="flex-grow py-5 bg-teal-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-teal-700 transition-all hover:scale-[1.01] active:scale-[0.99]">
-                     Push Updates Live
+                   <button type="submit" className="flex-grow py-5 bg-legit-red text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-red-700 transition-all hover:scale-[1.01] active:scale-[0.99]">
+                     {state.articles.some(a => a.id === editingArticle.id) ? 'Publish Updates' : 'Publish to Feed Now'}
                    </button>
                 </div>
               </form>
@@ -220,9 +267,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <tr>
-                    <th className="px-8 py-6">Creative & Title</th>
-                    <th className="px-8 py-6">Topic</th>
-                    <th className="px-8 py-6 text-right">Actions</th>
+                    <th className="px-8 py-6">Article Preview</th>
+                    <th className="px-8 py-6">Niche</th>
+                    <th className="px-8 py-6">Publication Date</th>
+                    <th className="px-8 py-6 text-right">Editor Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -230,25 +278,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                     <tr key={article.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-6">
-                          <div className="w-20 h-14 rounded-2xl overflow-hidden shadow-inner border border-slate-100 flex-shrink-0">
+                          <div className="w-20 h-14 rounded-2xl overflow-hidden shadow-inner border border-slate-100 flex-shrink-0 bg-slate-100">
                              <img src={article.imageUrl} alt="" className="w-full h-full object-cover" />
                           </div>
                           <div>
                             <p className="font-bold text-slate-900 text-sm leading-tight">{article.title}</p>
-                            <p className="text-[9px] text-slate-400 font-mono mt-1.5 uppercase tracking-tighter opacity-60">ID: {article.id}</p>
+                            <p className="text-[9px] text-slate-400 font-mono mt-1.5 uppercase tracking-tighter opacity-60">Slug: {article.slug}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                        <span className="text-[9px] font-black bg-teal-50 text-teal-700 px-3 py-1 rounded-lg uppercase tracking-widest">
+                        <span className="text-[9px] font-black bg-red-50 text-legit-red px-3 py-1 rounded-lg uppercase tracking-widest">
                           {article.category}
                         </span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className="text-xs font-bold text-slate-500">{article.datePublished}</span>
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-3">
                           <button 
                             onClick={() => setEditingArticle(article)}
-                            className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-[9px] font-black uppercase hover:bg-teal-600 hover:text-white transition-all tracking-widest"
+                            className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-[9px] font-black uppercase hover:bg-legit-red hover:text-white transition-all tracking-widest"
                           >
                             Edit
                           </button>
@@ -265,8 +316,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                 </tbody>
               </table>
               {state.articles.length === 0 && (
-                <div className="p-24 text-center text-slate-300 italic serif text-2xl">
-                   Your publishing queue is empty.
+                <div className="p-24 text-center text-slate-300 italic text-2xl">
+                   No articles found. Start by generating or writing one.
                 </div>
               )}
             </div>
@@ -274,7 +325,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
         </div>
       )}
 
-      {/* Other tabs (Ads, Media, SEO) maintained as per existing logic */}
       {activeTab === 'ads' && (
         <div className="space-y-12">
           {Object.entries(adGroups).map(([groupName, slots]) => (
@@ -288,19 +338,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                   <div key={slotKey} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-full ${localAds[slotKey as keyof AdConfig].active ? 'bg-teal-500 shadow-sm shadow-teal-500/50' : 'bg-slate-200'}`} />
+                        <div className={`w-2.5 h-2.5 rounded-full ${localAds[slotKey as keyof AdConfig].active ? 'bg-legit-red shadow-sm shadow-red-500/50' : 'bg-slate-200'}`} />
                         <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{slotKey}</h4>
                       </div>
                       <button 
                         onClick={() => handleUpdateAdField(slotKey as keyof AdConfig, 'active', !localAds[slotKey as keyof AdConfig].active)}
-                        className={`text-[9px] font-black uppercase px-4 py-1.5 rounded-xl transition-all ${localAds[slotKey as keyof AdConfig].active ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+                        className={`text-[9px] font-black uppercase px-4 py-1.5 rounded-xl transition-all ${localAds[slotKey as keyof AdConfig].active ? 'bg-legit-red text-white' : 'bg-slate-100 text-slate-400'}`}
                       >
                         {localAds[slotKey as keyof AdConfig].active ? 'Live' : 'Off'}
                       </button>
                     </div>
                     <div className="space-y-4">
-                      <input className="w-full px-5 py-3 text-[11px] rounded-xl border border-slate-100 outline-none focus:border-teal-500 bg-slate-50 focus:bg-white transition-all" placeholder="Placement Name / Client" value={localAds[slotKey as keyof AdConfig].title} onChange={(e) => handleUpdateAdField(slotKey as keyof AdConfig, 'title', e.target.value)} />
-                      <input className="w-full px-5 py-3 text-[11px] rounded-xl border border-slate-100 outline-none focus:border-teal-500 bg-slate-50 focus:bg-white transition-all" placeholder="Asset URL / Script Source" value={localAds[slotKey as keyof AdConfig].imageUrl} onChange={(e) => handleUpdateAdField(slotKey as keyof AdConfig, 'imageUrl', e.target.value)} />
+                      <input className="w-full px-5 py-3 text-[11px] rounded-xl border border-slate-100 outline-none focus:border-legit-red bg-slate-50 focus:bg-white transition-all" placeholder="Placement Name / Client" value={localAds[slotKey as keyof AdConfig].title} onChange={(e) => handleUpdateAdField(slotKey as keyof AdConfig, 'title', e.target.value)} />
+                      <input className="w-full px-5 py-3 text-[11px] rounded-xl border border-slate-100 outline-none focus:border-legit-red bg-slate-50 focus:bg-white transition-all" placeholder="Asset URL / Script Source" value={localAds[slotKey as keyof AdConfig].imageUrl} onChange={(e) => handleUpdateAdField(slotKey as keyof AdConfig, 'imageUrl', e.target.value)} />
                     </div>
                   </div>
                 ))}
@@ -315,7 +365,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
           {state.articles.map(article => (
             <div key={article.id} className="group relative aspect-square bg-white rounded-[2rem] overflow-hidden border border-slate-100 cursor-pointer shadow-sm" onClick={() => { setActiveTab('articles'); setEditingArticle(article); }}>
               <img src={article.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-              <div className="absolute inset-0 bg-teal-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 backdrop-blur-[2px]">
+              <div className="absolute inset-0 bg-red-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 backdrop-blur-[2px]">
                 <span className="text-white text-[9px] font-black uppercase tracking-widest text-center leading-tight">{article.title}</span>
                 <span className="mt-3 px-4 py-1.5 bg-white text-slate-900 rounded-full text-[9px] font-black uppercase tracking-tighter">Edit Asset</span>
               </div>
@@ -326,20 +376,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
 
       {activeTab === 'seo' && (
         <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm max-w-4xl mx-auto">
-           <h3 className="text-2xl font-bold mb-3 serif">Search Engine Intelligence</h3>
-           <p className="text-sm text-slate-500 mb-12">Protocol exports for crawling and site hierarchy verification.</p>
+           <h3 className="text-2xl font-black mb-3 uppercase tracking-tighter">Search Index Engine</h3>
+           <p className="text-sm text-slate-500 mb-12">Protocol exports for crawling and site hierarchy verification. Ensure these are submitted to Google Search Console.</p>
            {['sitemap.xml', 'rss.xml'].map(file => (
              <div key={file} className="mb-10 last:mb-0">
                 <div className="flex justify-between items-center mb-4">
-                   <h4 className="text-[10px] font-black uppercase text-teal-700 tracking-[0.3em]">{file}</h4>
+                   <h4 className="text-[10px] font-black uppercase text-legit-red tracking-[0.3em]">{file}</h4>
                    <button onClick={() => {
                       const seo = new SEOGenerator();
                       const content = file === 'sitemap.xml' ? seo.generateSitemap(state.articles) : seo.generateRSS(state.articles);
                       navigator.clipboard.writeText(content);
                       alert(`${file} copied to clipboard.`);
-                   }} className="text-[9px] font-black text-slate-400 hover:text-teal-600 uppercase tracking-widest">Copy Content</button>
+                   }} className="text-[9px] font-black text-slate-400 hover:text-legit-red uppercase tracking-widest">Copy Content</button>
                 </div>
-                <pre className="bg-slate-900 text-teal-400 p-8 rounded-[2rem] text-[11px] overflow-x-auto font-mono max-h-72 leading-relaxed shadow-2xl border border-slate-800">
+                <pre className="bg-slate-900 text-red-400 p-8 rounded-[2rem] text-[11px] overflow-x-auto font-mono max-h-72 leading-relaxed shadow-2xl border border-slate-800">
                   {file === 'sitemap.xml' ? new SEOGenerator().generateSitemap(state.articles) : new SEOGenerator().generateRSS(state.articles)}
                 </pre>
              </div>
