@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { NAV_LINKS } from '../constants';
@@ -93,6 +92,15 @@ export const Layout: React.FC<LayoutProps> = ({
               <button onClick={() => onLogin(UserRole.ADMIN)} className="opacity-40">Staff Login</button>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* TOP HEADER REFERRAL BANNER */}
+      <div className="bg-white flex justify-center py-4 border-b border-slate-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <a href="" rel="nofollow" target="_blank" className="block hover:opacity-90 transition-opacity">
+            <img alt="banner" src="https://landings-cdn.adsterratech.com/referralBanners/png/728%20x%2090%20px.png" className="max-w-full h-auto mx-auto shadow-sm rounded-sm" />
+          </a>
         </div>
       </div>
 
