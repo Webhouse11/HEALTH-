@@ -28,7 +28,8 @@ export interface AdSlot {
   subtitle: string;
   cta: string;
   imageUrl: string;
-  type: 'placeholder' | 'custom';
+  adSlotId?: string; // Google AdSense Slot ID
+  type: 'placeholder' | 'custom' | 'adsense';
   customScript: string;
   active: boolean;
 }
