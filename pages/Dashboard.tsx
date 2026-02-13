@@ -11,11 +11,12 @@ interface DashboardProps {
   onDeleteArticle: (id: string) => void;
   onUpdateAds: (ads: AdConfig) => void;
   onLogin: (role: UserRole) => void;
+  engineStatus?: 'idle' | 'generating' | 'quota_error' | 'error';
 }
 
 type Tab = 'articles' | 'media' | 'seo' | 'ads';
 
-export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, onUpdateArticle, onDeleteArticle, onUpdateAds, onLogin }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, onUpdateArticle, onDeleteArticle, onUpdateAds, onLogin, engineStatus = 'idle' }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('articles');
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
@@ -83,11 +84,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
     "Premium Special": ['interstitial', 'sponsor']
   };
 
+  const getEngineBadge = () => {
+    switch(engineStatus) {
+      case 'generating': return <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full animate-pulse">AI Researching...</span>;
+      case 'quota_error': return <span className="text-[9px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full">Quota Limit: Paused</span>;
+      case 'error': return <span className="text-[9px] font-black bg-red-100 text-red-600 px-3 py-1 rounded-full">Engine Error</span>;
+      default: return <span className="text-[9px] font-black bg-green-100 text-green-600 px-3 py-1 rounded-full">Pulse Engine Online</span>;
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto py-8">
       <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-legit-red bg-red-50 px-2 py-1 rounded mb-2 inline-block">Staff Console</span>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-legit-red bg-red-50 px-2 py-1 rounded inline-block">Staff Console</span>
+            {getEngineBadge()}
+          </div>
           <h1 className="text-3xl font-bold text-slate-900">Content Management System</h1>
         </div>
         <div className="flex flex-wrap gap-4">
@@ -104,13 +117,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
                 const service = new ContentAutomationService();
                 const art = await service.generateDailyPost(state.articles.map(a => a.title));
                 onPostGenerated(art);
-              } catch (e) {
+              } catch (e: any) {
                 console.error(e);
-                alert("Generation error. Check your API Key.");
+                if (e.message === 'QUOTA_EXCEEDED') {
+                  alert("Daily AI API quota exceeded. Please wait a few minutes or check your Gemini API plan.");
+                } else {
+                  alert("Generation error. Check your network or API Key.");
+                }
               }
               setLoading(false);
             }}
-            disabled={loading || articlesToday.length >= 100}
+            disabled={loading || articlesToday.length >= 100 || engineStatus === 'generating'}
             className="px-8 py-3 bg-legit-red text-white rounded-2xl font-black text-[10px] tracking-widest shadow-lg hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-3 uppercase"
           >
             {loading ? 'AI Researching...' : 'Auto-Generate Pulse Post'}
@@ -119,7 +136,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, onPostGenerated, on
       </header>
 
       {/* Daily Pulse Tracker */}
-      <div className="bg-white border border-slate-100 rounded-[2rem] p-8 mb-12 shadow-sm">
+      <div className="bg-white border border-slate-100 rounded-[2rem] p-8 mb-12 shadow-sm relative overflow-hidden">
+        {engineStatus === 'quota_error' && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center p-6 text-center">
+            <div className="max-w-md">
+              <p className="text-lg font-black text-orange-600 mb-2">PULSE ENGINE THROTTLED</p>
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">The Gemini API quota is currently exhausted. Background automation will resume automatically in a few minutes.</p>
+            </div>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4">
           <div>
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Daily Pulse Goal</h3>

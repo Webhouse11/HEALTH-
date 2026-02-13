@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Article, AppState, User, UserRole, AdConfig, AdSlot, NotificationToast as NotificationType } from './types';
 import { INITIAL_ARTICLES } from './constants';
@@ -50,6 +51,10 @@ const DEFAULT_ADS: AdConfig = {
 const App: React.FC = () => {
   const [activeNotifications, setActiveNotifications] = useState<NotificationType[]>([]);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [engineStatus, setEngineStatus] = useState<'idle' | 'generating' | 'quota_error' | 'error'>('idle');
+  // Fix: Use any to avoid NodeJS namespace error which occurs in browser environments
+  const quotaTimeoutRef = useRef<any>(null);
+
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -86,7 +91,6 @@ const App: React.FC = () => {
   const handlePostGenerated = useCallback((newArticle: Article) => {
     setState(prev => {
       if (prev.articles.some(a => a.id === newArticle.id || a.slug === newArticle.slug)) return prev;
-      // ALWAYS PREPEND: New articles go to index 0 (Top of home page)
       return {
         ...prev,
         articles: [newArticle, ...prev.articles],
@@ -98,26 +102,49 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const triggerAutomation = async () => {
+      // Don't trigger if already busy or on quota cooldown
+      if (engineStatus !== 'idle') return;
+
       const today = new Date().toISOString().split('T')[0];
       const articlesToday = state.articles.filter(a => a.datePublished === today);
       
-      if (articlesToday.length < 100 && !state.isGenerating) {
+      if (articlesToday.length < 100) {
+        setEngineStatus('generating');
         setState(prev => ({ ...prev, isGenerating: true }));
         try {
           const service = new ContentAutomationService();
           const newPost = await service.generateDailyPost(state.articles.map(a => a.title));
           handlePostGenerated(newPost);
-        } catch (e) {
+          setEngineStatus('idle');
+        } catch (e: any) {
           console.error("[Pulse Engine Error]", e);
+          if (e.message === 'QUOTA_EXCEEDED') {
+            setEngineStatus('quota_error');
+            // Pause for 5 minutes on quota error
+            quotaTimeoutRef.current = setTimeout(() => setEngineStatus('idle'), 300000);
+          } else {
+            setEngineStatus('error');
+            // Pause for 1 minute on generic error
+            quotaTimeoutRef.current = setTimeout(() => setEngineStatus('idle'), 60000);
+          }
         } finally {
           setState(prev => ({ ...prev, isGenerating: false }));
         }
       }
     };
 
-    const timeout = setTimeout(triggerAutomation, 5000);
-    return () => clearTimeout(timeout);
-  }, [state.articles, state.isGenerating, handlePostGenerated]);
+    // Increased background check to 2 minutes to respect quota limits
+    const interval = setInterval(triggerAutomation, 120000);
+    
+    // Also trigger once on mount (with a delay)
+    const initialTrigger = setTimeout(triggerAutomation, 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(initialTrigger);
+      if (quotaTimeoutRef.current) clearTimeout(quotaTimeoutRef.current);
+    };
+  }, [state.articles, engineStatus, handlePostGenerated]);
 
   useEffect(() => {
     const promptShown = localStorage.getItem(PROMPT_KEY);
@@ -218,6 +245,7 @@ const App: React.FC = () => {
                 onDeleteArticle={handleDeleteArticle}
                 onUpdateAds={handleUpdateAds}
                 onLogin={handleLogin}
+                engineStatus={engineStatus}
               />
             } 
           />

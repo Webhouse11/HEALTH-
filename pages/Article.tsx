@@ -1,3 +1,5 @@
+
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Article as ArticleType, Category, AdConfig } from '../types';
@@ -83,6 +85,25 @@ export const Article: React.FC<ArticleProps> = ({ articles, ads }) => {
 
              <div dangerouslySetInnerHTML={{ __html: injectedContent.split('<div class="ad-insertion-point my-12"></div>')[1] }} />
           </div>
+
+          {/* Grounding Sources Section: Required by Gemini Search Grounding guidelines */}
+          {article.groundingSources && article.groundingSources.length > 0 && (
+            <div className="mb-12 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Verified Sources & Research</h3>
+              <ul className="space-y-2">
+                {article.groundingSources.map((source, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-slate-600 hover:text-legit-red transition-colors">
+                      {source.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <footer className="pt-12 border-t border-slate-100 mb-20">
              <div className="flex flex-wrap gap-2 mb-12">

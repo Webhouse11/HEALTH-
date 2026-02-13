@@ -1,4 +1,5 @@
 
+
 export enum Category {
   ANXIETY = 'Anxiety Management',
   DEPRESSION = 'Depression Coping',
@@ -70,6 +71,7 @@ export interface Article {
   canonicalUrl: string;
   imageUrl: string;
   isFeatured?: boolean;
+  groundingSources?: { title: string; uri: string }[];
 }
 
 export interface AppState {
